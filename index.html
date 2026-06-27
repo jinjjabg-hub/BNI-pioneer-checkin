@@ -562,6 +562,28 @@ function popDigit() { if (currentPin.length > 0) { currentPin = currentPin.slice
 function clearAll() { currentPin = ''; updateDisplay(); }
 function resetPin() { currentPin = ''; updateDisplay(); }
 
+// ===== JSONP 호출 유틸 =====
+function jsonpCall(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      reject(new Error('timeout'));
+    }, 10000);
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+      resolve(data);
+    };
+    script.src = url + '&callback=' + cbName;
+    script.onerror = () => { clearTimeout(timer); reject(new Error('script error')); };
+    document.body.appendChild(script);
+  });
+}
+
 // ===== 체크인 처리 =====
 async function handleCheckIn() {
   if (currentPin.length !== 4) return;
@@ -570,8 +592,7 @@ async function handleCheckIn() {
   submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> 확인 중...';
 
   try {
-    const res = await fetch(settings.scriptUrl + '?action=checkin&pin=' + pin);
-    const data = await res.json();
+    const data = await jsonpCall(settings.scriptUrl + '?action=checkin&pin=' + pin);
 
     if (data.status === 'ok') {
       showSuccess(data);
@@ -631,15 +652,13 @@ async function loadAttendance() {
   updateStats();
 
   try {
-    const res = await fetch(settings.scriptUrl + '?action=today');
-    const data = await res.json();
+    const data = await jsonpCall(settings.scriptUrl + '?action=today');
     if (data.records) {
       todayRecords = data.records;
       updateStats();
       renderHistory();
     }
   } catch(e) {
-    // 로컬 데이터 사용
     updateStats();
   }
 }

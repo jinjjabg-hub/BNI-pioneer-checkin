@@ -464,7 +464,7 @@ let settings = {};
 // ===== 초기화 =====
 function init() {
   settings = {
-    scriptUrl: localStorage.getItem('scriptUrl') || '',
+    scriptUrl: localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbyS2lf97Rn8ohYIDQETaiYWoQqgjaWg9TFfDFOEswl2p6b4r0mWkfwMEM1EX3YpOevBXA/exec',
     raffleTime: localStorage.getItem('raffleTime') || '06:30',
     lateTime: localStorage.getItem('lateTime') || '07:00',
     adminPw: localStorage.getItem('adminPw') || '1234'
@@ -482,7 +482,7 @@ function init() {
   document.getElementById('scriptUrlInput').value = settings.scriptUrl;
 
   // 최초 설정 안 되어있으면 모달
-  if (!settings.scriptUrl) {
+  if (!settings.scriptUrl || settings.scriptUrl === '') {
     showSetupModal();
   } else {
     loadAttendance();

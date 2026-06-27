@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html class="light" lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BNI Pioneer 출석체크</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface": "#f8f9fa", "on-surface": "#191c1d", "surface-container": "#edeeef",
+          "surface-container-low": "#f3f4f5", "surface-container-lowest": "#ffffff",
+          "surface-container-high": "#e7e8e9", "surface-container-highest": "#e1e3e4",
+          "surface-dim": "#d9dadb", "on-surface-variant": "#5c403f",
+          "primary": "#9e001f", "on-primary": "#ffffff",
+          "primary-container": "#c8102e", "on-primary-container": "#ffdad8",
+          "primary-fixed": "#ffdad8", "primary-fixed-dim": "#ffb3b1",
+          "on-primary-fixed": "#410007", "on-primary-fixed-variant": "#92001c",
+          "secondary": "#575e70", "on-secondary": "#ffffff",
+          "secondary-fixed": "#dce2f7", "on-secondary-fixed-variant": "#404758",
+          "tertiary": "#434d5b", "tertiary-container": "#5b6574", "tertiary-fixed": "#d9e3f4",
+          "on-tertiary-fixed-variant": "#3e4755",
+          "inverse-surface": "#2e3132", "inverse-on-surface": "#f0f1f2",
+          "inverse-primary": "#ffb3b1", "outline": "#906f6e", "outline-variant": "#e5bdbb",
+          "error": "#ba1a1a", "background": "#f8f9fa", "on-background": "#191c1d",
+          "surface-tint": "#bf0229", "surface-variant": "#e1e3e4"
+        },
+        borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        spacing: {
+          "stack-sm": "4px", "stack-md": "12px", "stack-lg": "24px",
+          "base": "8px", "gutter": "16px",
+          "container-margin-mobile": "16px", "container-margin-desktop": "32px"
+        },
+        fontFamily: { "headline": ["Hanken Grotesk"], "body": ["Inter"] },
+        fontSize: {
+          "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+          "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+          "label-md": ["14px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+          "label-sm": ["12px", { lineHeight: "16px", fontWeight: "500" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  h1, h2, h3, .font-headline { font-family: 'Hanken Grotesk', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  body { min-height: 100dvh; -ms-overflow-style: none; scrollbar-width: none; background: #f8f9fa; }
+  body::-webkit-scrollbar { display: none; }
+  .page { display: none; }
+  .page.active { display: flex; flex-direction: column; min-height: 100dvh; }
+  .keypad-btn:active { transform: scale(0.95); background-color: #edeeef; }
+  .digit-slot { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+  .digit-slot.active { border-color: #C8102E; box-shadow: 0 0 0 2px rgba(200,16,46,0.1); }
+  .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); }
+
+  /* 추첨 애니메이션 */
+  @keyframes spin-name { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .raffle-spinning { animation: spin-name 0.1s infinite; }
+
+  /* 체크 애니메이션 */
+  .check-icon { width:80px; height:80px; border-radius:50%; border:4px solid #4CAF50; position:relative; box-sizing:content-box; }
+  .check-icon::before,.check-icon::after { content:''; height:100px; position:absolute; background:#fff; transform:rotate(-45deg); }
+  .check-icon::before { top:3px; left:-2px; width:30px; transform-origin:100% 50%; border-radius:100px 0 0 100px; }
+  .check-icon::after { top:0; left:30px; width:60px; transform-origin:0 50%; border-radius:0 100px 100px 0; }
+  .icon-line { height:5px; background:#4CAF50; display:block; border-radius:2px; position:absolute; z-index:10; }
+  .icon-line.line-tip { top:46px; left:14px; width:25px; transform:rotate(45deg); animation:icon-line-tip 0.75s; }
+  .icon-line.line-long { top:38px; right:8px; width:47px; transform:rotate(-45deg); animation:icon-line-long 0.75s; }
+  .icon-circle { top:-4px; left:-4px; z-index:10; width:80px; height:80px; border-radius:50%; position:absolute; box-sizing:content-box; border:4px solid rgba(76,175,80,.5); }
+  .icon-fix { top:8px; width:5px; left:26px; z-index:1; height:85px; position:absolute; transform:rotate(-45deg); background:#fff; }
+  @keyframes icon-line-tip { 0%{width:0;left:1px;top:19px} 54%{width:0;left:1px;top:19px} 70%{width:50px;left:-8px;top:37px} 84%{width:17px;left:21px;top:48px} 100%{width:25px;left:14px;top:46px} }
+  @keyframes icon-line-long { 0%{width:0;right:46px;top:54px} 65%{width:0;right:46px;top:54px} 84%{width:55px;right:0;top:35px} 100%{width:47px;right:8px;top:38px} }
+
+  /* 토스트 */
+  #toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:#191c1d; color:#fff; padding:12px 24px; border-radius:999px; font-size:14px; z-index:200; opacity:0; transition:opacity 0.3s; pointer-events:none; white-space:nowrap; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body class="text-on-surface">
+
+<!-- ===== 토스트 ===== -->
+<div id="toast"></div>
+
+<!-- ===== 설정 초기화 모달 ===== -->
+<div id="setupModal" class="fixed inset-0 z-[300] bg-on-surface/60 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4">
+    <h2 class="font-headline text-headline-md text-primary font-bold">⚙️ 관리자 설정</h2>
+    <p class="text-body-sm text-on-surface-variant">처음 사용 시 설정해 주세요.</p>
+    <div class="space-y-3">
+      <div>
+        <label class="text-label-sm text-on-surface-variant block mb-1">Google Apps Script URL</label>
+        <input id="setupScriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+      </div>
+      <div>
+        <label class="text-label-sm text-on-surface-variant block mb-1">추첨 기준 시각 (이 시각 이전 도착)</label>
+        <input id="setupRaffleTime" type="time" value="06:30" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+      </div>
+      <div>
+        <label class="text-label-sm text-on-surface-variant block mb-1">지각 기준 시각 (이 시각부터 지각)</label>
+        <input id="setupLateTime" type="time" value="07:00" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+      </div>
+      <div>
+        <label class="text-label-sm text-on-surface-variant block mb-1">관리자 비밀번호 (4자리)</label>
+        <input id="setupAdminPw" type="password" maxlength="4" placeholder="1234" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+      </div>
+    </div>
+    <button onclick="saveSetup()" class="w-full h-12 bg-primary-container text-on-primary-container rounded-xl font-label-md">저장하기</button>
+  </div>
+</div>
+
+<!-- ===== 관리자 비밀번호 모달 ===== -->
+<div id="adminPwModal" class="fixed inset-0 z-[300] bg-on-surface/60 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4">
+    <h2 class="font-headline text-headline-md text-primary font-bold">🔐 관리자 확인</h2>
+    <input id="adminPwInput" type="password" maxlength="4" placeholder="비밀번호 4자리" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+    <div class="flex gap-3">
+      <button onclick="closeAdminPwModal()" class="flex-1 h-12 border border-outline rounded-xl text-label-md">취소</button>
+      <button onclick="checkAdminPw()" class="flex-1 h-12 bg-primary-container text-on-primary-container rounded-xl font-label-md">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 추첨 모달 ===== -->
+<div id="raffleModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-on-surface/50 backdrop-blur-sm" onclick="closeRaffle()"></div>
+  <div class="relative glass-card border border-surface-container-highest w-full max-w-sm p-8 rounded-2xl shadow-2xl text-center space-y-4">
+    <div class="w-20 h-20 bg-primary-fixed rounded-full flex items-center justify-center mx-auto">
+      <span class="material-symbols-outlined text-4xl text-primary" style="font-variation-settings:'FILL' 1;">stars</span>
+    </div>
+    <h2 class="font-headline text-headline-lg text-primary">🎉 당첨!</h2>
+    <p class="text-body-md text-on-surface-variant">오늘의 행운의 주인공</p>
+    <div class="py-4 border-y border-surface-container-highest">
+      <span id="raffleWinner" class="text-2xl font-bold text-on-surface tracking-tight">-</span>
+    </div>
+    <button onclick="closeRaffle()" class="w-full h-12 bg-on-surface text-surface rounded-lg font-label-md">닫기</button>
+  </div>
+</div>
+
+<!-- ===== PAGE 1: 체크인 ===== -->
+<div id="page-checkin" class="page active">
+  <header class="sticky top-0 z-50 bg-surface-container-lowest border-b border-surface-container-highest flex justify-between items-center px-4 h-14">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary">handshake</span>
+      <h1 class="font-headline text-headline-md font-bold text-primary">BNI Pioneer</h1>
+    </div>
+    <div class="flex items-center gap-1">
+      <span id="headerDate" class="text-label-sm text-on-surface-variant"></span>
+      <button onclick="showAdminPwModal()" class="p-2 rounded-full hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-on-surface-variant text-xl">admin_panel_settings</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-[480px] mx-auto px-4 pt-10 pb-32 flex flex-col items-center">
+    <div class="text-center mb-8">
+      <h2 class="font-headline text-headline-lg-mobile text-on-surface mb-2">안녕하세요! 👋</h2>
+      <p class="text-body-md text-on-surface-variant">전화번호 뒷 4자리를 입력해 주세요</p>
+    </div>
+
+    <!-- PIN 입력창 -->
+    <div class="flex justify-center gap-4 mb-10 w-full" id="pin-display">
+      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="0"></div>
+      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="1"></div>
+      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="2"></div>
+      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="3"></div>
+    </div>
+
+    <!-- 키패드 -->
+    <div class="grid grid-cols-3 gap-4 w-full max-w-[320px]">
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('1')">1</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('2')">2</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('3')">3</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('4')">4</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('5')">5</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('6')">6</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('7')">7</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('8')">8</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('9')">9</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-label-md text-primary font-bold flex items-center justify-center transition-all uppercase tracking-widest" onclick="clearAll()">Clear</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('0')">0</button>
+      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl flex items-center justify-center transition-all" onclick="popDigit()">
+        <span class="material-symbols-outlined">backspace</span>
+      </button>
+    </div>
+
+    <!-- 체크인 버튼 -->
+    <button id="submit-btn" onclick="handleCheckIn()"
+      class="mt-10 w-full max-w-[320px] h-14 bg-primary-container text-on-primary-container rounded-xl text-headline-md font-bold shadow-md opacity-40 cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2" disabled>
+      <span class="material-symbols-outlined">check_circle</span>
+      체크인
+    </button>
+  </main>
+
+  <nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-2 h-20 bg-surface shadow-md border-t border-surface-container-highest">
+    <button onclick="showPage('checkin')" class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-5 py-1">
+      <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">how_to_reg</span>
+      <span class="text-label-sm">체크인</span>
+    </button>
+    <button onclick="showAdminPwModal()" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">admin_panel_settings</span>
+      <span class="text-label-sm">관리자</span>
+    </button>
+    <button onclick="showPage('history')" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">history</span>
+      <span class="text-label-sm">내역</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ===== PAGE 2: 체크인 완료 ===== -->
+<div id="page-success" class="page">
+  <header class="sticky top-0 z-50 bg-surface-container-lowest border-b border-surface-container-highest flex justify-between items-center px-4 h-14">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary">handshake</span>
+      <h1 class="font-headline text-headline-md font-bold text-primary">BNI Pioneer</h1>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-md mx-auto p-4 pb-28 space-y-4 overflow-y-auto pt-6">
+    <!-- 성공 카드 -->
+    <div class="bg-surface-container-lowest rounded-xl p-8 border border-surface-container-highest shadow-sm text-center relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image:radial-gradient(#9e001f 1px,transparent 1px);background-size:16px 16px;"></div>
+      <div class="relative z-10">
+        <div class="w-20 h-20 mx-auto mb-6">
+          <div class="check-icon">
+            <span class="icon-line line-tip"></span>
+            <span class="icon-line line-long"></span>
+            <div class="icon-circle"></div>
+            <div class="icon-fix"></div>
+          </div>
+        </div>
+        <h2 class="font-headline text-headline-lg-mobile text-on-surface mb-2">체크인 완료!</h2>
+        <p class="text-body-md text-on-surface-variant">출석이 기록되었습니다.</p>
+      </div>
+    </div>
+
+    <!-- 멤버 정보 -->
+    <div class="bg-white rounded-xl p-6 border border-surface-container-highest shadow-sm flex flex-col items-center">
+      <div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center mb-3">
+        <span id="successInitial" class="font-headline text-headline-md text-primary font-bold">-</span>
+      </div>
+      <h3 id="successName" class="font-headline text-headline-md text-on-surface mb-1">-</h3>
+      <p id="successRole" class="text-label-md text-on-surface-variant uppercase tracking-wider mb-4">GIVERS GAIN® MEMBER</p>
+      <div class="flex gap-2 flex-wrap justify-center">
+        <span id="successAttendBadge" class="px-4 py-1.5 rounded-full text-label-sm bg-green-100 text-green-800 border border-green-200">출석</span>
+        <span id="successRaffleBadge" class="px-4 py-1.5 rounded-full text-label-sm bg-primary-container text-on-primary-container border border-primary/20 hidden">🎁 추첨대상</span>
+        <span id="successLateBadge" class="px-4 py-1.5 rounded-full text-label-sm bg-amber-100 text-amber-700 border border-amber-200 hidden">⏰ 지각</span>
+        <span id="successSubBadge" class="px-4 py-1.5 rounded-full text-label-sm bg-blue-100 text-blue-700 border border-blue-200 hidden">대리출석</span>
+      </div>
+    </div>
+
+    <!-- 시간/날짜 -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="bg-white rounded-xl p-4 border border-surface-container-highest shadow-sm">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="material-symbols-outlined text-on-surface-variant text-lg">schedule</span>
+          <span class="text-label-sm text-on-surface-variant">체크인 시각</span>
+        </div>
+        <p id="successTime" class="font-headline text-headline-md text-on-surface">-</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-surface-container-highest shadow-sm">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="material-symbols-outlined text-on-surface-variant text-lg">calendar_today</span>
+          <span class="text-label-sm text-on-surface-variant">회의 날짜</span>
+        </div>
+        <p id="successDate" class="text-body-md font-semibold text-on-surface">-</p>
+      </div>
+    </div>
+
+    <!-- 모토 -->
+    <div class="bg-primary p-5 rounded-xl text-white relative overflow-hidden">
+      <div class="absolute top-0 right-0 p-2 opacity-10">
+        <span class="material-symbols-outlined text-6xl">handshake</span>
+      </div>
+      <p class="text-label-sm opacity-70 mb-1 uppercase tracking-widest">Chapter Motto</p>
+      <blockquote class="font-headline text-headline-md italic">"Givers Gain®"</blockquote>
+    </div>
+
+    <button onclick="showPage('checkin')" class="w-full h-14 bg-primary-container text-on-primary-container rounded-xl font-headline text-headline-md shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined">done_all</span>
+      완료
+    </button>
+  </main>
+</div>
+
+<!-- ===== PAGE 3: 관리자 대시보드 ===== -->
+<div id="page-admin" class="page">
+  <header class="sticky top-0 z-50 bg-surface-container-lowest border-b border-surface-container-highest flex justify-between items-center px-4 h-14">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary">admin_panel_settings</span>
+      <h1 class="font-headline text-headline-md font-bold text-primary">관리자</h1>
+    </div>
+    <button onclick="loadAttendance()" class="p-2 rounded-full hover:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-on-surface-variant">refresh</span>
+    </button>
+  </header>
+
+  <main class="flex-1 px-4 pt-4 pb-28 max-w-2xl mx-auto space-y-4 overflow-y-auto">
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-3 gap-3">
+      <div class="col-span-3 glass-card border border-surface-container-highest p-4 rounded-xl shadow-sm">
+        <span class="text-label-sm text-on-surface-variant uppercase">총 출석</span>
+        <p class="text-headline-lg font-headline text-primary-container mt-1">
+          <span id="statTotal">0</span>
+          <span class="text-on-surface-variant text-label-md"> / <span id="statMax">0</span>명</span>
+        </p>
+        <div class="flex items-center gap-2 text-green-600 mt-2">
+          <span class="material-symbols-outlined text-sm">trending_up</span>
+          <span class="text-label-sm"><span id="statRate">0</span>% 참석률</span>
+        </div>
+      </div>
+      <div class="glass-card border border-surface-container-highest p-4 rounded-xl shadow-sm">
+        <span class="text-label-sm text-on-surface-variant uppercase">지각</span>
+        <p class="text-headline-lg font-headline text-secondary mt-1"><span id="statLate">0</span></p>
+        <div class="flex items-center gap-2 text-amber-500 mt-2">
+          <span class="material-symbols-outlined text-sm">schedule</span>
+          <span class="text-label-sm">명</span>
+        </div>
+      </div>
+      <div class="glass-card border border-surface-container-highest p-4 rounded-xl shadow-sm">
+        <span class="text-label-sm text-on-surface-variant uppercase">추첨대상</span>
+        <p class="text-headline-lg font-headline text-tertiary mt-1"><span id="statRaffle">0</span></p>
+        <div class="flex items-center gap-2 text-yellow-600 mt-2">
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">stars</span>
+          <span class="text-label-sm">명</span>
+        </div>
+      </div>
+      <div class="glass-card border border-surface-container-highest p-4 rounded-xl shadow-sm">
+        <span class="text-label-sm text-on-surface-variant uppercase">대리</span>
+        <p class="text-headline-lg font-headline text-blue-600 mt-1"><span id="statSub">0</span></p>
+        <div class="flex items-center gap-2 text-blue-500 mt-2">
+          <span class="material-symbols-outlined text-sm">swap_horiz</span>
+          <span class="text-label-sm">명</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 출석 리스트 -->
+    <div class="glass-card border border-surface-container-highest rounded-xl shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-surface-container-highest flex justify-between items-center bg-surface-container-low">
+        <h2 class="font-headline text-headline-md text-primary">오늘 출석 현황</h2>
+        <span id="adminDate" class="text-label-sm text-on-surface-variant"></span>
+      </div>
+      <div class="overflow-y-auto max-h-72">
+        <table class="w-full text-left">
+          <thead class="sticky top-0 bg-surface-container-lowest z-10 border-b border-surface-container-highest">
+            <tr class="text-on-surface-variant text-label-md">
+              <th class="px-4 py-3 font-semibold">이름</th>
+              <th class="px-4 py-3 font-semibold">시각</th>
+              <th class="px-4 py-3 font-semibold">상태</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceList" class="divide-y divide-surface-container-highest">
+            <tr><td colspan="3" class="text-center text-body-sm text-on-surface-variant py-8">데이터를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 빠른 액션 -->
+    <div class="glass-card border border-surface-container-highest p-5 rounded-xl shadow-sm space-y-3">
+      <h3 class="text-on-surface-variant text-label-md uppercase flex items-center gap-2">
+        <span class="material-symbols-outlined text-lg">bolt</span> 빠른 액션
+      </h3>
+      <button onclick="startRaffle()" class="w-full flex items-center justify-center gap-2 bg-primary-container text-on-primary-container h-12 rounded-lg font-label-md hover:brightness-110 active:scale-95 transition-all">
+        <span class="material-symbols-outlined">casino</span> 🎁 추첨하기
+      </button>
+      <button onclick="shareKakao()" class="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-black h-12 rounded-lg font-label-md hover:brightness-105 active:scale-95 transition-all shadow-sm">
+        <span class="material-symbols-outlined">share</span> 카톡 공유 메시지 복사
+      </button>
+    </div>
+
+    <!-- 설정 -->
+    <div class="glass-card border border-surface-container-highest p-5 rounded-xl shadow-sm space-y-4">
+      <h3 class="text-on-surface-variant text-label-md uppercase flex items-center gap-2">
+        <span class="material-symbols-outlined text-lg">settings</span> 시간 설정
+      </h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-label-sm text-on-surface-variant block mb-1">추첨 기준 (~이전)</label>
+          <input id="raffleTimeInput" type="time" class="w-full h-12 px-3 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+        </div>
+        <div>
+          <label class="text-label-sm text-on-surface-variant block mb-1">지각 기준 (이후~)</label>
+          <input id="lateTimeInput" type="time" class="w-full h-12 px-3 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+        </div>
+      </div>
+      <div>
+        <label class="text-label-sm text-on-surface-variant block mb-1">Apps Script URL</label>
+        <input id="scriptUrlInput" type="url" class="w-full h-12 px-3 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+      </div>
+      <button onclick="saveSettings()" class="w-full h-10 bg-surface-container border border-outline rounded-lg text-label-md hover:bg-surface-container-high transition-colors">
+        설정 저장
+      </button>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-2 h-20 bg-surface shadow-md border-t border-surface-container-highest">
+    <button onclick="showPage('checkin')" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">how_to_reg</span>
+      <span class="text-label-sm">체크인</span>
+    </button>
+    <button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-5 py-1">
+      <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">admin_panel_settings</span>
+      <span class="text-label-sm">관리자</span>
+    </button>
+    <button onclick="showPage('history')" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">history</span>
+      <span class="text-label-sm">내역</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ===== PAGE 4: 내역 ===== -->
+<div id="page-history" class="page">
+  <header class="sticky top-0 z-50 bg-surface-container-lowest border-b border-surface-container-highest flex justify-between items-center px-4 h-14">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary">history</span>
+      <h1 class="font-headline text-headline-md font-bold text-primary">오늘 내역</h1>
+    </div>
+    <button onclick="loadAttendance()" class="p-2 rounded-full hover:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-on-surface-variant">refresh</span>
+    </button>
+  </header>
+
+  <main class="flex-1 px-4 pt-4 pb-28 max-w-md mx-auto space-y-3 overflow-y-auto">
+    <div id="historyList" class="space-y-2">
+      <p class="text-center text-body-sm text-on-surface-variant py-8">체크인 내역이 없습니다.</p>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-2 h-20 bg-surface shadow-md border-t border-surface-container-highest">
+    <button onclick="showPage('checkin')" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">how_to_reg</span>
+      <span class="text-label-sm">체크인</span>
+    </button>
+    <button onclick="showAdminPwModal()" class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1">
+      <span class="material-symbols-outlined text-2xl">admin_panel_settings</span>
+      <span class="text-label-sm">관리자</span>
+    </button>
+    <button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-5 py-1">
+      <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">history</span>
+      <span class="text-label-sm">내역</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+// ===== 상태 =====
+let currentPin = "";
+let todayRecords = []; // { name, type, subFor, time, isLate, isRaffle }
+let settings = {};
+
+// ===== 초기화 =====
+function init() {
+  settings = {
+    scriptUrl: localStorage.getItem('scriptUrl') || '',
+    raffleTime: localStorage.getItem('raffleTime') || '06:30',
+    lateTime: localStorage.getItem('lateTime') || '07:00',
+    adminPw: localStorage.getItem('adminPw') || '1234'
+  };
+
+  // 날짜 표시
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  document.getElementById('headerDate').textContent = dateStr;
+  document.getElementById('adminDate').textContent = dateStr;
+
+  // 설정 입력창 채우기
+  document.getElementById('raffleTimeInput').value = settings.raffleTime;
+  document.getElementById('lateTimeInput').value = settings.lateTime;
+  document.getElementById('scriptUrlInput').value = settings.scriptUrl;
+
+  // 최초 설정 안 되어있으면 모달
+  if (!settings.scriptUrl) {
+    showSetupModal();
+  } else {
+    loadAttendance();
+  }
+}
+
+// ===== 페이지 전환 =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'checkin') resetPin();
+  if (name === 'history') renderHistory();
+}
+
+// ===== 설정 모달 =====
+function showSetupModal() {
+  document.getElementById('setupModal').classList.remove('hidden');
+  document.getElementById('setupModal').classList.add('flex');
+}
+function saveSetup() {
+  const url = document.getElementById('setupScriptUrl').value.trim();
+  const raffleT = document.getElementById('setupRaffleTime').value;
+  const lateT = document.getElementById('setupLateTime').value;
+  const pw = document.getElementById('setupAdminPw').value;
+  if (!url) { showToast('Apps Script URL을 입력해 주세요'); return; }
+  localStorage.setItem('scriptUrl', url);
+  localStorage.setItem('raffleTime', raffleT);
+  localStorage.setItem('lateTime', lateT);
+  localStorage.setItem('adminPw', pw || '1234');
+  document.getElementById('setupModal').classList.add('hidden');
+  document.getElementById('setupModal').classList.remove('flex');
+  init();
+}
+
+// ===== 관리자 비밀번호 모달 =====
+function showAdminPwModal() {
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminPwModal').classList.remove('hidden');
+  document.getElementById('adminPwModal').classList.add('flex');
+}
+function closeAdminPwModal() {
+  document.getElementById('adminPwModal').classList.add('hidden');
+  document.getElementById('adminPwModal').classList.remove('flex');
+}
+function checkAdminPw() {
+  const input = document.getElementById('adminPwInput').value;
+  if (input === settings.adminPw) {
+    closeAdminPwModal();
+    showPage('admin');
+    loadAttendance();
+  } else {
+    showToast('비밀번호가 틀렸습니다');
+  }
+}
+
+// ===== 키패드 =====
+const slots = document.querySelectorAll('.digit-slot');
+const submitBtn = document.getElementById('submit-btn');
+
+function updateDisplay() {
+  slots.forEach((slot, i) => {
+    slot.textContent = currentPin[i] || '';
+    slot.classList.toggle('active', i === currentPin.length);
+  });
+  if (currentPin.length === 4) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    submitBtn.classList.add('cursor-pointer');
+  } else {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+    submitBtn.classList.remove('cursor-pointer');
+  }
+}
+function appendDigit(d) { if (currentPin.length < 4) { currentPin += d; updateDisplay(); } }
+function popDigit() { if (currentPin.length > 0) { currentPin = currentPin.slice(0,-1); updateDisplay(); } }
+function clearAll() { currentPin = ''; updateDisplay(); }
+function resetPin() { currentPin = ''; updateDisplay(); }
+
+// ===== 체크인 처리 =====
+async function handleCheckIn() {
+  if (currentPin.length !== 4) return;
+  const pin = currentPin;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> 확인 중...';
+
+  try {
+    const res = await fetch(settings.scriptUrl + '?action=checkin&pin=' + pin);
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      showSuccess(data);
+    } else if (data.status === 'already') {
+      showToast('⚠️ 이미 체크인 되었습니다');
+      resetPin();
+      submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
+    } else if (data.status === 'notfound') {
+      showToast('❌ 등록되지 않은 번호입니다');
+      resetPin();
+      submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
+    }
+  } catch(e) {
+    showToast('연결 오류. 관리자에게 문의하세요.');
+    resetPin();
+    submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
+  }
+}
+
+function showSuccess(data) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+  const dateStr = now.toLocaleDateString('ko-KR');
+
+  // 시간 비교
+  const [rH, rM] = settings.raffleTime.split(':').map(Number);
+  const [lH, lM] = settings.lateTime.split(':').map(Number);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const raffleMin = rH * 60 + rM;
+  const lateMin = lH * 60 + lM;
+  const isRaffle = nowMin < raffleMin && (data.type === '멤버' || data.type === '대리');
+  const isLate = nowMin >= lateMin;
+
+  // 성공화면 채우기
+  const initial = (data.name || '?').charAt(0);
+  document.getElementById('successInitial').textContent = initial;
+  document.getElementById('successName').textContent = data.name;
+  document.getElementById('successRole').textContent =
+    data.type === '대리' ? `${data.subFor} 대리 출석` :
+    data.type === '비지터' ? 'VISITOR' : 'GIVERS GAIN® MEMBER';
+  document.getElementById('successTime').textContent = timeStr;
+  document.getElementById('successDate').textContent = dateStr;
+
+  document.getElementById('successRaffleBadge').classList.toggle('hidden', !isRaffle);
+  document.getElementById('successLateBadge').classList.toggle('hidden', !isLate);
+  document.getElementById('successSubBadge').classList.toggle('hidden', data.type !== '대리');
+
+  // 로컬 기록
+  todayRecords.push({ name: data.name, type: data.type, subFor: data.subFor || '', time: timeStr, isLate, isRaffle });
+
+  showPage('success');
+}
+
+// ===== 출석 데이터 로드 =====
+async function loadAttendance() {
+  if (!settings.scriptUrl) return;
+  updateStats();
+
+  try {
+    const res = await fetch(settings.scriptUrl + '?action=today');
+    const data = await res.json();
+    if (data.records) {
+      todayRecords = data.records;
+      updateStats();
+      renderHistory();
+    }
+  } catch(e) {
+    // 로컬 데이터 사용
+    updateStats();
+  }
+}
+
+function updateStats() {
+  const total = todayRecords.length;
+  const lateCount = todayRecords.filter(r => r.isLate).length;
+  const raffleCount = todayRecords.filter(r => r.isRaffle).length;
+  const subCount = todayRecords.filter(r => r.type === '대리').length;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statMax').textContent = total; // 전체 멤버수는 시트에서
+  document.getElementById('statRate').textContent = total > 0 ? '100' : '0';
+  document.getElementById('statLate').textContent = lateCount;
+  document.getElementById('statRaffle').textContent = raffleCount;
+  document.getElementById('statSub').textContent = subCount;
+
+  // 리스트 렌더
+  const tbody = document.getElementById('attendanceList');
+  if (todayRecords.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-body-sm text-on-surface-variant py-8">아직 체크인한 멤버가 없습니다</td></tr>';
+    return;
+  }
+  tbody.innerHTML = todayRecords.map(r => {
+    const initials = r.name.slice(0,2);
+    const statusHtml = r.isLate
+      ? '<span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-label-sm border border-amber-200">지각</span>'
+      : r.type === '대리'
+      ? '<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-label-sm border border-blue-200">대리</span>'
+      : '<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-label-sm border border-green-200">출석</span>'
+        + (r.isRaffle ? '<span class="material-symbols-outlined text-yellow-500 text-lg ml-1" style="font-variation-settings:\'FILL\' 1;">stars</span>' : '');
+    return `<tr class="hover:bg-surface-container transition-colors">
+      <td class="px-4 py-3"><div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant font-bold text-xs">${initials}</div>
+        <span class="text-body-md font-medium">${r.name}${r.type==='대리' ? '<br><span class="text-label-sm text-on-surface-variant">' + r.subFor + ' 대리</span>' : ''}</span>
+      </div></td>
+      <td class="px-4 py-3 text-on-surface-variant text-body-sm">${r.time}</td>
+      <td class="px-4 py-3 flex items-center gap-1 flex-wrap">${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (todayRecords.length === 0) {
+    list.innerHTML = '<p class="text-center text-body-sm text-on-surface-variant py-8">체크인 내역이 없습니다.</p>';
+    return;
+  }
+  list.innerHTML = todayRecords.map(r => `
+    <div class="bg-white rounded-xl p-4 border border-surface-container-highest shadow-sm flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant font-bold text-sm">${r.name.slice(0,2)}</div>
+      <div class="flex-1">
+        <div class="flex items-center gap-2">
+          <span class="font-medium text-body-md">${r.name}</span>
+          ${r.type==='대리' ? `<span class="text-label-sm text-blue-600">${r.subFor} 대리</span>` : ''}
+          ${r.isRaffle ? '<span class="text-yellow-500 text-label-sm">🎁</span>' : ''}
+        </div>
+        <span class="text-label-sm text-on-surface-variant">${r.time}</span>
+      </div>
+      <span class="text-label-sm px-2 py-1 rounded-full ${r.isLate ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">${r.isLate ? '지각' : '출석'}</span>
+    </div>
+  `).join('');
+}
+
+// ===== 추첨 =====
+function startRaffle() {
+  const eligible = todayRecords.filter(r => r.isRaffle);
+  if (eligible.length === 0) {
+    showToast('추첨 대상이 없습니다 (06:30 이전 도착 멤버/대리)');
+    return;
+  }
+
+  const modal = document.getElementById('raffleModal');
+  const winnerEl = document.getElementById('raffleWinner');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  // 스피닝 효과
+  let count = 0;
+  const interval = setInterval(() => {
+    const random = eligible[Math.floor(Math.random() * eligible.length)];
+    winnerEl.textContent = random.name;
+    winnerEl.classList.add('raffle-spinning');
+    count++;
+    if (count > 20) {
+      clearInterval(interval);
+      const winner = eligible[Math.floor(Math.random() * eligible.length)];
+      winnerEl.textContent = winner.name + ' 대표님 🎉';
+      winnerEl.classList.remove('raffle-spinning');
+    }
+  }, 100);
+}
+
+function closeRaffle() {
+  document.getElementById('raffleModal').classList.add('hidden');
+  document.getElementById('raffleModal').classList.remove('flex');
+}
+
+// ===== 카톡 공유 =====
+function shareKakao() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR');
+  const total = todayRecords.length;
+  const lateList = todayRecords.filter(r => r.isLate).map(r => r.name).join(', ');
+  const absentCount = 0; // 전체 멤버에서 계산 필요
+
+  let msg = `📋 BNI Pioneer 출석 현황\n`;
+  msg += `📅 ${dateStr}\n`;
+  msg += `━━━━━━━━━━━━━━━━\n`;
+  msg += `✅ 총 출석: ${total}명\n`;
+  if (lateList) msg += `⏰ 지각: ${lateList}\n`;
+  todayRecords.filter(r => r.type === '대리').forEach(r => {
+    msg += `🔄 대리: ${r.name} (${r.subFor} 대신)\n`;
+  });
+  msg += `━━━━━━━━━━━━━━━━\n`;
+  msg += `"Givers Gain® BNI Pioneer"`;
+
+  navigator.clipboard.writeText(msg).then(() => {
+    showToast('✅ 카톡 메시지가 복사되었습니다!');
+  }).catch(() => {
+    // fallback
+    const el = document.createElement('textarea');
+    el.value = msg;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('✅ 카톡 메시지가 복사되었습니다!');
+  });
+}
+
+// ===== 설정 저장 =====
+function saveSettings() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  const raffleT = document.getElementById('raffleTimeInput').value;
+  const lateT = document.getElementById('lateTimeInput').value;
+  localStorage.setItem('scriptUrl', url);
+  localStorage.setItem('raffleTime', raffleT);
+  localStorage.setItem('lateTime', lateT);
+  settings.scriptUrl = url;
+  settings.raffleTime = raffleT;
+  settings.lateTime = lateT;
+  showToast('✅ 설정이 저장되었습니다');
+}
+
+// ===== 토스트 =====
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===== 시작 =====
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

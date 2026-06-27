@@ -130,19 +130,79 @@
   </div>
 </div>
 
-<!-- ===== 추첨 모달 ===== -->
-<div id="raffleModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
-  <div class="absolute inset-0 bg-on-surface/50 backdrop-blur-sm" onclick="closeRaffle()"></div>
-  <div class="relative glass-card border border-surface-container-highest w-full max-w-sm p-8 rounded-2xl shadow-2xl text-center space-y-4">
-    <div class="w-20 h-20 bg-primary-fixed rounded-full flex items-center justify-center mx-auto">
-      <span class="material-symbols-outlined text-4xl text-primary" style="font-variation-settings:'FILL' 1;">stars</span>
+<!-- ===== 추첨 방식 선택 모달 ===== -->
+<div id="raffleModeModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-on-surface/50 backdrop-blur-sm" onclick="document.getElementById('raffleModeModal').classList.add('hidden');document.getElementById('raffleModeModal').classList.remove('flex');"></div>
+  <div class="relative bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl space-y-4">
+    <h2 class="font-headline text-headline-md text-primary text-center font-bold">🎁 추첨 방식 선택</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="startRaffleMode('spin')" class="h-24 bg-surface-container-low rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-primary-fixed active:scale-95 transition-all">
+        <span class="text-3xl">🎰</span>
+        <span class="text-label-md font-bold">슬롯머신</span>
+      </button>
+      <button onclick="startRaffleMode('roulette')" class="h-24 bg-surface-container-low rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-primary-fixed active:scale-95 transition-all">
+        <span class="text-3xl">🎡</span>
+        <span class="text-label-md font-bold">룰렛</span>
+      </button>
+      <button onclick="startRaffleMode('card')" class="h-24 bg-surface-container-low rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-primary-fixed active:scale-95 transition-all">
+        <span class="text-3xl">🃏</span>
+        <span class="text-label-md font-bold">카드 뒤집기</span>
+      </button>
+      <button onclick="startRaffleMode('name')" class="h-24 bg-surface-container-low rounded-xl flex flex-col items-center justify-center gap-2 hover:bg-primary-fixed active:scale-95 transition-all">
+        <span class="text-3xl">✨</span>
+        <span class="text-label-md font-bold">이름 추첨</span>
+      </button>
     </div>
-    <h2 class="font-headline text-headline-lg text-primary">🎉 당첨!</h2>
-    <p class="text-body-md text-on-surface-variant">오늘의 행운의 주인공</p>
-    <div class="py-4 border-y border-surface-container-highest">
-      <span id="raffleWinner" class="text-2xl font-bold text-on-surface tracking-tight">-</span>
+    <button onclick="document.getElementById('raffleModeModal').classList.add('hidden');document.getElementById('raffleModeModal').classList.remove('flex');" class="w-full h-10 border border-outline rounded-lg text-label-md">취소</button>
+  </div>
+</div>
+
+<!-- ===== 추첨 결과 모달 ===== -->
+<div id="raffleModal" class="fixed inset-0 z-[210] hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-on-surface/60 backdrop-blur-sm"></div>
+  <div class="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+    <!-- 슬롯머신 -->
+    <div id="raffleSlot" class="hidden p-8 text-center space-y-4">
+      <h2 class="font-headline text-headline-md text-primary">🎰 슬롯머신</h2>
+      <div class="bg-gray-900 rounded-xl p-4 h-24 flex items-center justify-center overflow-hidden">
+        <span id="slotName" class="text-2xl font-bold text-yellow-400 font-mono"></span>
+      </div>
+      <div id="slotResult" class="hidden space-y-3">
+        <p class="text-green-600 font-bold text-lg">🎉 당첨!</p>
+        <button onclick="closeRaffle()" class="w-full h-12 bg-on-surface text-surface rounded-lg font-label-md">닫기</button>
+      </div>
     </div>
-    <button onclick="closeRaffle()" class="w-full h-12 bg-on-surface text-surface rounded-lg font-label-md">닫기</button>
+    <!-- 룰렛 -->
+    <div id="raffleRoulette" class="hidden p-6 text-center space-y-4">
+      <h2 class="font-headline text-headline-md text-primary">🎡 룰렛</h2>
+      <div class="flex justify-center">
+        <canvas id="rouletteCanvas" width="280" height="280"></canvas>
+      </div>
+      <button id="rouletteSpinBtn" onclick="spinRoulette()" class="w-full h-12 bg-primary-container text-on-primary-container rounded-lg font-label-md">돌리기!</button>
+      <div id="rouletteResult" class="hidden space-y-2">
+        <p class="text-green-600 font-bold text-lg">🎉 당첨!</p>
+        <p id="rouletteWinnerName" class="text-xl font-bold"></p>
+        <button onclick="closeRaffle()" class="w-full h-12 bg-on-surface text-surface rounded-lg font-label-md">닫기</button>
+      </div>
+    </div>
+    <!-- 카드 뒤집기 -->
+    <div id="raffleCard" class="hidden p-6 text-center space-y-4">
+      <h2 class="font-headline text-headline-md text-primary">🃏 카드 뒤집기</h2>
+      <p class="text-body-sm text-on-surface-variant">카드를 선택하세요!</p>
+      <div id="cardGrid" class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto"></div>
+      <button onclick="closeRaffle()" class="w-full h-10 border border-outline rounded-lg text-label-md">닫기</button>
+    </div>
+    <!-- 이름 추첨 -->
+    <div id="raffleNameSpin" class="hidden p-8 text-center space-y-4">
+      <h2 class="font-headline text-headline-md text-primary">✨ 이름 추첨</h2>
+      <div class="py-6 border-y border-surface-container-highest">
+        <span id="raffleWinner" class="text-2xl font-bold text-on-surface tracking-tight">-</span>
+      </div>
+      <div id="nameResult" class="hidden space-y-2">
+        <p class="text-green-600 font-bold">🎉 당첨!</p>
+        <button onclick="closeRaffle()" class="w-full h-12 bg-on-surface text-surface rounded-lg font-label-md">닫기</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -724,30 +784,187 @@ function renderHistory() {
 }
 
 // ===== 추첨 =====
+let raffleEligible = [];
+let rouletteAngle = 0;
+let rouletteSpinning = false;
+
 function startRaffle() {
-  const eligible = todayRecords.filter(r => r.isRaffle);
-  if (eligible.length === 0) {
-    showToast('추첨 대상이 없습니다 (06:30 이전 도착 멤버/대리)');
+  raffleEligible = todayRecords.filter(r => r.isRaffle);
+  // 테스트용: 추첨 대상 없으면 전체 멤버로
+  if (raffleEligible.length === 0) {
+    raffleEligible = todayRecords;
+  }
+  if (raffleEligible.length === 0) {
+    showToast('체크인한 멤버가 없습니다');
     return;
   }
+  const m = document.getElementById('raffleModeModal');
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
 
-  const modal = document.getElementById('raffleModal');
-  const winnerEl = document.getElementById('raffleWinner');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+function startRaffleMode(mode) {
+  document.getElementById('raffleModeModal').classList.add('hidden');
+  document.getElementById('raffleModeModal').classList.remove('flex');
 
-  // 스피닝 효과
+  // 모든 섹션 숨기기
+  ['raffleSlot','raffleRoulette','raffleCard','raffleNameSpin'].forEach(id => {
+    document.getElementById(id).classList.add('hidden');
+  });
+  document.getElementById('raffleModal').classList.remove('hidden');
+  document.getElementById('raffleModal').classList.add('flex');
+
+  if (mode === 'spin') startSlot();
+  else if (mode === 'roulette') startRoulette();
+  else if (mode === 'card') startCard();
+  else if (mode === 'name') startNameSpin();
+}
+
+// ===== 슬롯머신 =====
+function startSlot() {
+  document.getElementById('raffleSlot').classList.remove('hidden');
+  document.getElementById('slotResult').classList.add('hidden');
+  const el = document.getElementById('slotName');
   let count = 0;
+  const total = 40 + Math.floor(Math.random() * 20);
+  const winner = raffleEligible[Math.floor(Math.random() * raffleEligible.length)];
   const interval = setInterval(() => {
-    const random = eligible[Math.floor(Math.random() * eligible.length)];
-    winnerEl.textContent = random.name;
-    winnerEl.classList.add('raffle-spinning');
+    const r = raffleEligible[Math.floor(Math.random() * raffleEligible.length)];
+    el.textContent = r.name;
     count++;
-    if (count > 20) {
+    if (count >= total) {
       clearInterval(interval);
-      const winner = eligible[Math.floor(Math.random() * eligible.length)];
-      winnerEl.textContent = winner.name + ' 대표님 🎉';
-      winnerEl.classList.remove('raffle-spinning');
+      el.textContent = winner.name + ' 대표님 🎉';
+      document.getElementById('slotResult').classList.remove('hidden');
+    }
+  }, 80);
+}
+
+// ===== 룰렛 =====
+function startRoulette() {
+  document.getElementById('raffleRoulette').classList.remove('hidden');
+  document.getElementById('rouletteResult').classList.add('hidden');
+  document.getElementById('rouletteSpinBtn').classList.remove('hidden');
+  rouletteAngle = 0;
+  rouletteSpinning = false;
+  drawRoulette(0);
+}
+
+function drawRoulette(angle) {
+  const canvas = document.getElementById('rouletteCanvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 140, cy = 140, r = 130;
+  const names = raffleEligible.map(e => e.name);
+  const n = names.length;
+  const slice = (2 * Math.PI) / n;
+  const colors = ['#C8102E','#e85070','#ff6b6b','#ffa07a','#ffd700','#90EE90','#87CEEB','#DDA0DD'];
+  ctx.clearRect(0,0,280,280);
+  names.forEach((name, i) => {
+    const start = angle + i * slice;
+    const end = start + slice;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 텍스트
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice/2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Inter';
+    const shortName = name.length > 4 ? name.slice(0,4) : name;
+    ctx.fillText(shortName, r - 10, 5);
+    ctx.restore();
+  });
+  // 포인터
+  ctx.beginPath();
+  ctx.moveTo(cx + r + 5, cy);
+  ctx.lineTo(cx + r + 20, cy - 8);
+  ctx.lineTo(cx + r + 20, cy + 8);
+  ctx.fillStyle = '#191c1d';
+  ctx.fill();
+}
+
+function spinRoulette() {
+  if (rouletteSpinning) return;
+  rouletteSpinning = true;
+  document.getElementById('rouletteSpinBtn').classList.add('hidden');
+  const n = raffleEligible.length;
+  const winIdx = Math.floor(Math.random() * n);
+  const slice = (2 * Math.PI) / n;
+  const totalSpin = Math.PI * 2 * (5 + Math.random() * 3);
+  // 목표: 포인터(오른쪽)가 winIdx 칸에 오도록
+  const targetAngle = -(winIdx * slice + slice/2) + Math.PI;
+  const finalAngle = totalSpin + targetAngle;
+  let start = null;
+  const duration = 4000;
+  function animate(ts) {
+    if (!start) start = ts;
+    const elapsed = ts - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const cur = finalAngle * ease;
+    drawRoulette(cur);
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      rouletteSpinning = false;
+      const winner = raffleEligible[winIdx];
+      document.getElementById('rouletteWinnerName').textContent = winner.name + ' 대표님 🎉';
+      document.getElementById('rouletteResult').classList.remove('hidden');
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// ===== 카드 뒤집기 =====
+function startCard() {
+  document.getElementById('raffleCard').classList.remove('hidden');
+  const grid = document.getElementById('cardGrid');
+  const winner = raffleEligible[Math.floor(Math.random() * raffleEligible.length)];
+  const shuffled = [...raffleEligible].sort(() => Math.random() - 0.5);
+  grid.innerHTML = shuffled.map((m, i) => `
+    <div onclick="flipCard(this, '${m.name}', '${winner.name}')"
+      class="h-16 bg-primary-container rounded-lg cursor-pointer flex items-center justify-center text-on-primary-container font-bold text-xl card-face transition-all active:scale-95"
+      data-name="${m.name}">🎁</div>
+  `).join('');
+}
+
+function flipCard(el, name, winner) {
+  if (el.dataset.flipped) return;
+  el.dataset.flipped = '1';
+  const isWinner = name === winner;
+  el.textContent = isWinner ? '🏆' : '😢';
+  el.style.background = isWinner ? '#4CAF50' : '#e0e0e0';
+  el.style.color = isWinner ? '#fff' : '#999';
+  el.style.fontSize = '13px';
+  el.textContent = isWinner ? ('🏆 ' + name) : name;
+  if (isWinner) {
+    setTimeout(() => showToast('🎉 ' + name + ' 대표님 당첨!'), 300);
+  }
+}
+
+// ===== 이름 추첨 =====
+function startNameSpin() {
+  document.getElementById('raffleNameSpin').classList.remove('hidden');
+  document.getElementById('nameResult').classList.add('hidden');
+  const el = document.getElementById('raffleWinner');
+  const winner = raffleEligible[Math.floor(Math.random() * raffleEligible.length)];
+  let count = 0;
+  const total = 30 + Math.floor(Math.random() * 15);
+  const interval = setInterval(() => {
+    const r = raffleEligible[Math.floor(Math.random() * raffleEligible.length)];
+    el.textContent = r.name;
+    count++;
+    if (count >= total) {
+      clearInterval(interval);
+      el.textContent = winner.name + ' 대표님 🎉';
+      document.getElementById('nameResult').classList.remove('hidden');
     }
   }, 100);
 }

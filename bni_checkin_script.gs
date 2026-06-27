@@ -3,9 +3,8 @@
 //   탭1 "명단": A=이름, B=전화번호뒷4자리, C=구분(멤버/비지터/대리), D=대리대상
 //   탭2 "출석기록": A=날짜, B=이름, C=구분, D=대리대상, E=시각, F=지각여부, G=추첨여부
 
-const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const RAFFLE_TIME = '06:30'; // 추첨 기준 (설정 가능)
-const LATE_TIME = '07:00';   // 지각 기준 (설정 가능)
+const RAFFLE_TIME = '06:30';
+const LATE_TIME = '07:00';
 
 function doGet(e) {
   const action = e.parameter.action;
@@ -23,6 +22,7 @@ function doGet(e) {
     result = { status: 'error', message: err.toString() };
   }
 
+  // CORS 허용
   return ContentService
     .createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
@@ -46,7 +46,6 @@ function handleCheckin(pin) {
     if (rowPin === pin) {
       found = {
         name: members[i][0],
-        pin: members[i][1],
         type: members[i][2] || '멤버',
         subFor: members[i][3] || ''
       };
@@ -66,7 +65,7 @@ function handleCheckin(pin) {
     const recDate = String(records[i][0]).slice(0, 10);
     const recName = records[i][1];
     if (recDate === today && recName === found.name) {
-      return { status: 'already', message: '이미 체크인됨' };
+      return { status: 'already', message: '이미 체크인됨', name: found.name };
     }
   }
 
@@ -122,7 +121,6 @@ function getTodayRecords() {
     }
   }
 
-  // 전체 멤버 수
   const allMembers = memberSheet.getDataRange().getValues();
   const memberCount = allMembers.slice(1).filter(r => r[2] === '멤버').length;
 
@@ -133,7 +131,6 @@ function getTodayRecords() {
   };
 }
 
-// ===== 유틸 =====
 function getTodayStr() {
   return Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
 }

@@ -714,8 +714,8 @@ async function loadAttendance() {
   try {
     const data = await jsonpCall(settings.scriptUrl + '?action=today');
     if (data.records && data.records.length > 0) {
-      // 시트 데이터가 있을 때만 덮어씀
-      todayRecords = data.records;
+      // 시트 데이터가 있을 때만 덮어씀 (최신순 정렬)
+      todayRecords = data.records.reverse();
       updateStats();
       renderHistory();
     } else if (data.records && data.records.length === 0 && todayRecords.length > 0) {

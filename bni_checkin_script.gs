@@ -5,7 +5,7 @@ const LATE_TIME = '07:00';
 
 function doGet(e) {
   const action = e.parameter.action;
-  const callback = e.parameter.callback; // JSONP 콜백
+  const callback = e.parameter.callback;
   let result;
 
   try {
@@ -22,14 +22,12 @@ function doGet(e) {
 
   const json = JSON.stringify(result);
 
-  // JSONP 응답 (callback 파라미터 있을 때)
   if (callback) {
     return ContentService
       .createTextOutput(callback + '(' + json + ')')
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
 
-  // 일반 JSON 응답
   return ContentService
     .createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
@@ -141,4 +139,8 @@ function getTodayStr() {
 function timeToMin(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
+}
+
+function testToday() {
+  Logger.log(getTodayStr());
 }

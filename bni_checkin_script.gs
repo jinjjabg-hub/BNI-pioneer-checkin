@@ -1,13 +1,11 @@
-// BNI Pioneer 출석체크 - Google Apps Script
-// 시트 구조:
-//   탭1 "명단": A=이름, B=전화번호뒷4자리, C=구분(멤버/비지터/대리), D=대리대상
-//   탭2 "출석기록": A=날짜, B=이름, C=구분, D=대리대상, E=시각, F=지각여부, G=추첨여부
+// BNI Pioneer 출석체크 - Google Apps Script (JSONP 지원)
 
 const RAFFLE_TIME = '06:30';
 const LATE_TIME = '07:00';
 
 function doGet(e) {
   const action = e.parameter.action;
+  const callback = e.parameter.callback; // JSONP 콜백
   let result;
 
   try {
@@ -22,9 +20,18 @@ function doGet(e) {
     result = { status: 'error', message: err.toString() };
   }
 
-  // CORS 허용
+  const json = JSON.stringify(result);
+
+  // JSONP 응답 (callback 파라미터 있을 때)
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + json + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  // 일반 JSON 응답
   return ContentService
-    .createTextOutput(JSON.stringify(result))
+    .createTextOutput(json)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -37,13 +44,12 @@ function handleCheckin(pin) {
     return { status: 'error', message: '핀번호 오류' };
   }
 
-  // 명단에서 검색
   const members = memberSheet.getDataRange().getValues();
   let found = null;
 
   for (let i = 1; i < members.length; i++) {
     const rowPin = String(members[i][1]).trim();
-    if (rowPin === pin) {
+    if (rowPin.padStart(4,'0') === pin.padStart(4,'0')) {
       found = {
         name: members[i][0],
         type: members[i][2] || '멤버',
@@ -57,7 +63,6 @@ function handleCheckin(pin) {
     return { status: 'notfound', message: '등록되지 않은 번호' };
   }
 
-  // 오늘 이미 체크인 했는지 확인
   const today = getTodayStr();
   const records = recordSheet.getDataRange().getValues();
 
@@ -69,14 +74,12 @@ function handleCheckin(pin) {
     }
   }
 
-  // 시간 계산
   const now = new Date();
   const timeStr = Utilities.formatDate(now, 'Asia/Seoul', 'HH:mm');
   const isLate = timeToMin(timeStr) >= timeToMin(LATE_TIME);
   const isRaffle = timeToMin(timeStr) < timeToMin(RAFFLE_TIME) &&
                    (found.type === '멤버' || found.type === '대리');
 
-  // 기록 저장
   recordSheet.appendRow([
     today,
     found.name,
@@ -122,7 +125,7 @@ function getTodayRecords() {
   }
 
   const allMembers = memberSheet.getDataRange().getValues();
-  const memberCount = allMembers.slice(1).filter(r => r[2] === '멤버').length;
+  const memberCount = allMembers.slice(1).filter(r => r[0] !== '').length;
 
   return {
     status: 'ok',

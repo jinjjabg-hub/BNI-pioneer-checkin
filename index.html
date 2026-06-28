@@ -221,41 +221,41 @@
     </div>
   </header>
 
-  <main class="flex-1 w-full max-w-[480px] mx-auto px-4 pt-10 pb-32 flex flex-col items-center">
-    <div class="text-center mb-8">
+  <main class="flex-1 w-full max-w-[480px] mx-auto px-4 pt-4 pb-24 flex flex-col items-center">
+    <div class="text-center mb-4">
       <h2 class="font-headline text-headline-lg-mobile text-on-surface mb-2">안녕하세요! 👋</h2>
       <p class="text-body-md text-on-surface-variant">전화번호 뒷 4자리를 입력해 주세요</p>
     </div>
 
     <!-- PIN 입력창 -->
-    <div class="flex justify-center gap-4 mb-10 w-full" id="pin-display">
-      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="0"></div>
-      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="1"></div>
-      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="2"></div>
-      <div class="digit-slot w-16 h-20 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-lg font-bold text-primary shadow-sm" data-index="3"></div>
+    <div class="flex justify-center gap-3 mb-6 w-full" id="pin-display">
+      <div class="digit-slot w-14 h-16 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-md font-bold text-primary shadow-sm" data-index="0"></div>
+      <div class="digit-slot w-14 h-16 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-md font-bold text-primary shadow-sm" data-index="1"></div>
+      <div class="digit-slot w-14 h-16 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-md font-bold text-primary shadow-sm" data-index="2"></div>
+      <div class="digit-slot w-14 h-16 bg-surface-container-lowest border-2 border-surface-container-highest rounded-xl flex items-center justify-center text-headline-md font-bold text-primary shadow-sm" data-index="3"></div>
     </div>
 
     <!-- 키패드 -->
     <div class="grid grid-cols-3 gap-4 w-full max-w-[320px]">
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('1')">1</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('2')">2</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('3')">3</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('4')">4</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('5')">5</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('6')">6</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('7')">7</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('8')">8</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('9')">9</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-label-md text-primary font-bold flex items-center justify-center transition-all uppercase tracking-widest" onclick="clearAll()">Clear</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('0')">0</button>
-      <button class="keypad-btn h-16 bg-surface-container-low rounded-xl flex items-center justify-center transition-all" onclick="popDigit()">
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('1')">1</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('2')">2</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('3')">3</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('4')">4</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('5')">5</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('6')">6</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('7')">7</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('8')">8</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('9')">9</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-label-md text-primary font-bold flex items-center justify-center transition-all uppercase tracking-widest" onclick="clearAll()">Clear</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl text-headline-md font-bold flex items-center justify-center transition-all" onclick="appendDigit('0')">0</button>
+      <button class="keypad-btn h-14 bg-surface-container-low rounded-xl flex items-center justify-center transition-all" onclick="popDigit()">
         <span class="material-symbols-outlined">backspace</span>
       </button>
     </div>
 
     <!-- 체크인 버튼 -->
     <button id="submit-btn" onclick="handleCheckIn()"
-      class="mt-10 w-full max-w-[320px] h-14 bg-primary-container text-on-primary-container rounded-xl text-headline-md font-bold shadow-md opacity-40 cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2" disabled>
+      class="mt-5 w-full max-w-[320px] h-12 bg-primary-container text-on-primary-container rounded-xl text-headline-md font-bold shadow-md opacity-40 cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2" disabled>
       <span class="material-symbols-outlined">check_circle</span>
       체크인
     </button>

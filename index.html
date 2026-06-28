@@ -713,12 +713,17 @@ async function loadAttendance() {
 
   try {
     const data = await jsonpCall(settings.scriptUrl + '?action=today');
-    if (data.records) {
+    if (data.records && data.records.length > 0) {
+      // 시트 데이터가 있을 때만 덮어씀
       todayRecords = data.records;
       updateStats();
       renderHistory();
+    } else if (data.records && data.records.length === 0 && todayRecords.length > 0) {
+      // 시트는 비어있지만 로컬에 데이터 있으면 유지
+      updateStats();
     }
   } catch(e) {
+    // 오류시 로컬 데이터 유지
     updateStats();
   }
 }

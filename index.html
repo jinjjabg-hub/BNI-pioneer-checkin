@@ -795,10 +795,6 @@ let rouletteSpinning = false;
 
 function startRaffle() {
   raffleEligible = todayRecords.filter(r => r.isRaffle);
-  // 테스트용: 추첨 대상 없으면 전체 멤버로
-  if (raffleEligible.length === 0) {
-    raffleEligible = todayRecords;
-  }
   if (raffleEligible.length === 0) {
     showToast('체크인한 멤버가 없습니다');
     return;

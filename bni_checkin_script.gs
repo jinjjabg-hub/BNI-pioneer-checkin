@@ -144,3 +144,14 @@ function timeToMin(timeStr) {
 function testToday() {
   Logger.log(getTodayStr());
 }
+
+function testRecords() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('출석기록');
+  const rows = sheet.getDataRange().getValues();
+  const today = getTodayStr();
+  Logger.log('오늘: ' + today);
+  Logger.log('2행 날짜: ' + String(rows[1][0]));
+  Logger.log('2행 날짜 slice: ' + String(rows[1][0]).slice(0,10));
+  Logger.log('일치여부: ' + (String(rows[1][0]).slice(0,10) === today));
+}

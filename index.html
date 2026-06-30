@@ -523,7 +523,7 @@ let settings = {};
 // ===== 초기화 =====
 function init() {
   settings = {
-    scriptUrl: localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbwfEj7ZR2erMmLvkDSQFW4ovJvcQxmmD2GsxRvCJNhJqIIUoGShzvs1rSv0rXCq_Sdvww/exec',
+    scriptUrl: localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbyjJWUBBFPE0NWoRj569vNMWwVkJvp7gFkhQJuVE-k2QQYRtPh8zmgGKSeAKT2lKrSO/exec',
     raffleTime: localStorage.getItem('raffleTime') || '06:30',
     lateTime: localStorage.getItem('lateTime') || '07:00',
     adminPw: localStorage.getItem('adminPw') || '1234'
@@ -979,17 +979,34 @@ function shareKakao() {
   const now = new Date();
   const dateStr = now.toLocaleDateString('ko-KR');
   const total = todayRecords.length;
-  const lateList = todayRecords.filter(r => r.isLate).map(r => r.name).join(', ');
-  const absentCount = 0; // 전체 멤버에서 계산 필요
+
+  const sorted = [...todayRecords].sort((a, b) => a.time.localeCompare(b.time));
+  const onTimeList = sorted.filter(r => !r.isLate);
+  const lateListArr = sorted.filter(r => r.isLate);
 
   let msg = `📋 BNI Pioneer 출석 현황\n`;
   msg += `📅 ${dateStr}\n`;
   msg += `━━━━━━━━━━━━━━━━\n`;
-  msg += `✅ 총 출석: ${total}명\n`;
-  if (lateList) msg += `⏰ 지각: ${lateList}\n`;
-  todayRecords.filter(r => r.type === '대리').forEach(r => {
-    msg += `🔄 대리: ${r.name} (${r.subFor} 대신)\n`;
-  });
+  msg += `✅ 총 출석: ${total}명\n\n`;
+
+  if (onTimeList.length > 0) {
+    msg += `🟢 정상 출석 (${onTimeList.length}명)\n`;
+    onTimeList.forEach(r => {
+      const tag = r.type === '대리' ? ` (${r.subFor} 대리)` : '';
+      msg += `  · ${r.name}${tag} - ${r.time}\n`;
+    });
+    msg += `\n`;
+  }
+
+  if (lateListArr.length > 0) {
+    msg += `⏰ 지각 (${lateListArr.length}명)\n`;
+    lateListArr.forEach(r => {
+      const tag = r.type === '대리' ? ` (${r.subFor} 대리)` : '';
+      msg += `  · ${r.name}${tag} - ${r.time}\n`;
+    });
+    msg += `\n`;
+  }
+
   msg += `━━━━━━━━━━━━━━━━\n`;
   msg += `"Givers Gain® BNI Pioneer"`;
 

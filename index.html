@@ -130,6 +130,25 @@
   </div>
 </div>
 
+<!-- ===== 비지터 현장 등록 모달 ===== -->
+<div id="visitorModal" class="fixed inset-0 z-[300] bg-on-surface/60 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4">
+    <h2 class="font-headline text-headline-md text-primary font-bold">👋 처음 오셨나요?</h2>
+    <p class="text-body-sm text-on-surface-variant">등록되지 않은 번호예요. 비지터로 체크인하시려면 성함을 입력해 주세요.</p>
+    <input id="visitorNameInput" type="text" placeholder="성함" class="w-full h-12 px-4 border border-outline rounded-lg text-body-md focus:outline-none focus:border-primary-container"/>
+    <div>
+      <label class="text-label-sm text-on-surface-variant block mb-1">담당 호스트</label>
+      <select id="visitorHostSelect" class="w-full h-12 px-3 border border-outline rounded-lg text-body-md focus:outline-none focus:border-primary-container bg-white">
+        <option value="">불러오는 중...</option>
+      </select>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeVisitorModal()" class="flex-1 h-12 border border-outline rounded-xl text-label-md">취소</button>
+      <button onclick="submitVisitorCheckin()" class="flex-1 h-12 bg-primary-container text-on-primary-container rounded-xl font-label-md">체크인</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== 추첨 방식 선택 모달 ===== -->
 <div id="raffleModeModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
   <div class="absolute inset-0 bg-on-surface/50 backdrop-blur-sm" onclick="document.getElementById('raffleModeModal').classList.add('hidden');document.getElementById('raffleModeModal').classList.remove('flex');"></div>
@@ -549,11 +568,18 @@ function init() {
 }
 
 // ===== 페이지 전환 =====
+let autoRefreshTimer = null;
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   if (name === 'checkin') resetPin();
   if (name === 'history') renderHistory();
+
+  // 관리자 화면일 때만 30초마다 자동 새로고침
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  if (name === 'admin') {
+    autoRefreshTimer = setInterval(() => { loadAttendance(); }, 30000);
+  }
 }
 
 // ===== 설정 모달 =====
@@ -660,14 +686,63 @@ async function handleCheckIn() {
       resetPin();
       submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
     } else if (data.status === 'notfound') {
-      showToast('❌ 등록되지 않은 번호입니다');
-      resetPin();
+      openVisitorModal(pin);
       submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
     }
   } catch(e) {
     showToast('연결 오류. 관리자에게 문의하세요.');
     resetPin();
     submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
+  }
+}
+
+// ===== 비지터 현장 등록 =====
+let visitorPin = '';
+async function openVisitorModal(pin) {
+  visitorPin = pin;
+  document.getElementById('visitorNameInput').value = '';
+  const m = document.getElementById('visitorModal');
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+
+  // 호스트 후보 목록 불러오기
+  const sel = document.getElementById('visitorHostSelect');
+  sel.innerHTML = '<option value="">불러오는 중...</option>';
+  try {
+    const data = await jsonpCall(settings.scriptUrl + '?action=hostList');
+    if (data.hosts && data.hosts.length > 0) {
+      sel.innerHTML = '<option value="">호스트 선택</option>' +
+        data.hosts.map(h => `<option value="${h}">${h}</option>`).join('');
+    } else {
+      sel.innerHTML = '<option value="">선택 가능한 호스트 없음</option>';
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">목록 로드 실패</option>';
+  }
+}
+function closeVisitorModal() {
+  document.getElementById('visitorModal').classList.add('hidden');
+  document.getElementById('visitorModal').classList.remove('flex');
+  resetPin();
+}
+async function submitVisitorCheckin() {
+  const name = document.getElementById('visitorNameInput').value.trim();
+  const host = document.getElementById('visitorHostSelect').value;
+  if (!name) { showToast('성함을 입력해 주세요'); return; }
+  if (!host) { showToast('담당 호스트를 선택해 주세요'); return; }
+  try {
+    const data = await jsonpCall(settings.scriptUrl + '?action=visitorCheckin&pin=' + visitorPin + '&name=' + encodeURIComponent(name) + '&host=' + encodeURIComponent(host));
+    closeVisitorModal();
+    if (data.status === 'ok') {
+      showSuccess(data);
+    } else if (data.status === 'already') {
+      showToast('⚠️ 이미 체크인 되었습니다');
+    } else {
+      showToast('오류가 발생했습니다');
+    }
+  } catch(e) {
+    showToast('연결 오류. 관리자에게 문의하세요.');
+    closeVisitorModal();
   }
 }
 
@@ -691,7 +766,7 @@ function showSuccess(data) {
   document.getElementById('successName').textContent = data.name;
   document.getElementById('successRole').textContent =
     data.type === '대리' ? `${data.subFor} 대리 출석` :
-    data.type === '비지터' ? 'VISITOR' : 'GIVERS GAIN® MEMBER';
+    data.type === '비지터' ? (data.host ? `담당 호스트: ${data.host} 대표님` : 'VISITOR') : 'GIVERS GAIN® MEMBER';
   document.getElementById('successTime').textContent = timeStr;
   document.getElementById('successDate').textContent = dateStr;
 
@@ -700,7 +775,7 @@ function showSuccess(data) {
   document.getElementById('successSubBadge').classList.toggle('hidden', data.type !== '대리');
 
   // 로컬 기록
-  todayRecords.push({ name: data.name, type: data.type, subFor: data.subFor || '', time: timeStr, isLate, isRaffle });
+  todayRecords.push({ name: data.name, type: data.type, subFor: data.subFor || '', host: data.host || '', time: timeStr, isLate, isRaffle });
 
   showPage('success');
 }
@@ -836,6 +911,7 @@ function startSlot() {
       clearInterval(interval);
       el.textContent = winner.name + ' 대표님 🎉';
       document.getElementById('slotResult').classList.remove('hidden');
+      logWinnerToSheet(winner.name, 'spin');
     }
   }, 80);
 }
@@ -917,6 +993,7 @@ function spinRoulette() {
       const winner = raffleEligible[winIdx];
       document.getElementById('rouletteWinnerName').textContent = winner.name + ' 대표님 🎉';
       document.getElementById('rouletteResult').classList.remove('hidden');
+      logWinnerToSheet(winner.name, 'roulette');
     }
   }
   requestAnimationFrame(animate);
@@ -946,6 +1023,7 @@ function flipCard(el, name, winner) {
   el.textContent = isWinner ? ('🏆 ' + name) : name;
   if (isWinner) {
     setTimeout(() => showToast('🎉 ' + name + ' 대표님 당첨!'), 300);
+    logWinnerToSheet(name, 'card');
   }
 }
 
@@ -965,8 +1043,14 @@ function startNameSpin() {
       clearInterval(interval);
       el.textContent = winner.name + ' 대표님 🎉';
       document.getElementById('nameResult').classList.remove('hidden');
+      logWinnerToSheet(winner.name, 'name');
     }
   }, 100);
+}
+
+// ===== 당첨자 시트 기록 =====
+function logWinnerToSheet(name, mode) {
+  jsonpCall(settings.scriptUrl + '?action=logWinner&name=' + encodeURIComponent(name) + '&mode=' + mode).catch(()=>{});
 }
 
 function closeRaffle() {
@@ -981,27 +1065,52 @@ function shareKakao() {
   const total = todayRecords.length;
 
   const sorted = [...todayRecords].sort((a, b) => a.time.localeCompare(b.time));
-  const onTimeList = sorted.filter(r => !r.isLate);
-  const lateListArr = sorted.filter(r => r.isLate);
+  
+  const members    = sorted.filter(r => r.type === '멤버' && !r.isLate);
+  const subs       = sorted.filter(r => r.type === '대리' && !r.isLate);
+  const visitors   = sorted.filter(r => r.type === '비지터' && !r.isLate);
+  const lateList   = sorted.filter(r => r.isLate);
+
+  const memberCount  = sorted.filter(r => r.type === '멤버').length;
+  const subCount     = sorted.filter(r => r.type === '대리').length;
+  const visitorCount = sorted.filter(r => r.type === '비지터').length;
 
   let msg = `📋 BNI Pioneer 출석 현황\n`;
   msg += `📅 ${dateStr}\n`;
   msg += `━━━━━━━━━━━━━━━━\n`;
-  msg += `✅ 총 출석: ${total}명\n\n`;
+  msg += `✅ 총 출석: ${total}명`;
+  const parts = [];
+  if (memberCount)  parts.push(`멤버 ${memberCount}`);
+  if (subCount)     parts.push(`대리 ${subCount}`);
+  if (visitorCount) parts.push(`비지터 ${visitorCount}`);
+  if (parts.length) msg += ` (${parts.join(' / ')})`;
+  msg += `\n\n`;
 
-  if (onTimeList.length > 0) {
-    msg += `🟢 정상 출석 (${onTimeList.length}명)\n`;
-    onTimeList.forEach(r => {
-      const tag = r.type === '대리' ? ` (${r.subFor} 대리)` : '';
-      msg += `  · ${r.name}${tag} - ${r.time}\n`;
+  if (members.length > 0) {
+    msg += `🟢 멤버 (${members.length}명)\n`;
+    members.forEach(r => { msg += `  · ${r.name} - ${r.time}\n`; });
+    msg += `\n`;
+  }
+
+  if (subs.length > 0) {
+    msg += `🔄 대리 (${subs.length}명)\n`;
+    subs.forEach(r => { msg += `  · ${r.name} - ${r.time} (${r.subFor} 대신)\n`; });
+    msg += `\n`;
+  }
+
+  if (visitors.length > 0) {
+    msg += `👥 비지터 (${visitors.length}명)\n`;
+    visitors.forEach(r => {
+      const hostTag = r.host ? ` (호스트: ${r.host})` : '';
+      msg += `  · ${r.name}${hostTag} - ${r.time}\n`;
     });
     msg += `\n`;
   }
 
-  if (lateListArr.length > 0) {
-    msg += `⏰ 지각 (${lateListArr.length}명)\n`;
-    lateListArr.forEach(r => {
-      const tag = r.type === '대리' ? ` (${r.subFor} 대리)` : '';
+  if (lateList.length > 0) {
+    msg += `⏰ 지각 (${lateList.length}명)\n`;
+    lateList.forEach(r => {
+      const tag = r.type === '대리' ? ` (${r.subFor} 대신)` : r.type === '비지터' ? ' (비지터)' : '';
       msg += `  · ${r.name}${tag} - ${r.time}\n`;
     });
     msg += `\n`;

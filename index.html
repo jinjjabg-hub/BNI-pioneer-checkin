@@ -563,7 +563,9 @@ function init() {
   if (!settings.scriptUrl || settings.scriptUrl === '') {
     showSetupModal();
   } else {
+    loadMemberListInstant(); // 저장된 캐시 즉시 적용 (0ms)
     loadAttendance();
+    loadMemberList();        // 최신 명단 백그라운드 갱신
   }
 }
 
@@ -669,31 +671,81 @@ function jsonpCall(url) {
   });
 }
 
-// ===== 체크인 처리 =====
+// ===== 명단 캐시 (localStorage로 영구 저장) =====
+let memberCache = [];
+function loadMemberListInstant() {
+  // 저장된 캐시 있으면 즉시 사용 (네트워크 대기 없음)
+  try {
+    const saved = localStorage.getItem('memberCache');
+    if (saved) memberCache = JSON.parse(saved);
+  } catch(e) {}
+}
+async function loadMemberList() {
+  // 최신 명단을 백그라운드로 갱신
+  try {
+    const data = await jsonpCall(settings.scriptUrl + '?action=memberList');
+    if (data.members) {
+      memberCache = data.members;
+      localStorage.setItem('memberCache', JSON.stringify(data.members));
+    }
+  } catch(e) { /* 실패해도 기존 캐시로 계속 작동 */ }
+}
+
+// ===== 체크인 처리 (로컬 즉시 판정) =====
 async function handleCheckIn() {
   if (currentPin.length !== 4) return;
   const pin = currentPin;
+  const normalizedPin = pin.padStart(4, '0');
+
+  // 1) 캐시에서 즉시 조회
+  if (memberCache.length > 0) {
+    const found = memberCache.find(m => m.pin === normalizedPin);
+
+    if (!found) {
+      openVisitorModal(pin);
+      return;
+    }
+
+    // 오늘 이미 체크인했는지 로컬 확인
+    if (todayRecords.some(r => r.name === found.name)) {
+      showToast('⚠️ 이미 체크인 되었습니다');
+      resetPin();
+      return;
+    }
+
+    // 즉시 완료 화면 표시
+    showSuccess({
+      name: found.name,
+      type: found.type,
+      subFor: found.subFor,
+      host: found.host
+    });
+
+    // 시트 저장은 백그라운드
+    jsonpCall(settings.scriptUrl + '?action=checkin&pin=' + pin).catch(() => {
+      showToast('⚠️ 저장 실패. 다시 체크인해 주세요.');
+    });
+    return;
+  }
+
+  // 2) 캐시 없으면 기존 서버 방식 (fallback)
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> 확인 중...';
-
   try {
     const data = await jsonpCall(settings.scriptUrl + '?action=checkin&pin=' + pin);
-
     if (data.status === 'ok') {
       showSuccess(data);
     } else if (data.status === 'already') {
       showToast('⚠️ 이미 체크인 되었습니다');
       resetPin();
-      submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
     } else if (data.status === 'notfound') {
       openVisitorModal(pin);
-      submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
     }
   } catch(e) {
     showToast('연결 오류. 관리자에게 문의하세요.');
     resetPin();
-    submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
   }
+  submitBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 체크인';
 }
 
 // ===== 비지터 현장 등록 =====
@@ -730,20 +782,27 @@ async function submitVisitorCheckin() {
   const host = document.getElementById('visitorHostSelect').value;
   if (!name) { showToast('성함을 입력해 주세요'); return; }
   if (!host) { showToast('담당 호스트를 선택해 주세요'); return; }
-  try {
-    const data = await jsonpCall(settings.scriptUrl + '?action=visitorCheckin&pin=' + visitorPin + '&name=' + encodeURIComponent(name) + '&host=' + encodeURIComponent(host));
+
+  // 로컬 중복 확인
+  if (todayRecords.some(r => r.name === name)) {
+    showToast('⚠️ 이미 체크인 되었습니다');
     closeVisitorModal();
-    if (data.status === 'ok') {
-      showSuccess(data);
-    } else if (data.status === 'already') {
-      showToast('⚠️ 이미 체크인 되었습니다');
-    } else {
-      showToast('오류가 발생했습니다');
-    }
-  } catch(e) {
-    showToast('연결 오류. 관리자에게 문의하세요.');
-    closeVisitorModal();
+    return;
   }
+
+  const pinToSend = visitorPin;
+  closeVisitorModal();
+
+  // 즉시 완료 화면
+  showSuccess({ name: name, type: '비지터', subFor: '', host: host });
+
+  // 캐시에도 추가 (같은 번호 재입력 대비)
+  memberCache.push({ name: name, pin: pinToSend.padStart(4,'0'), type: '비지터', subFor: '', host: host, role: '' });
+
+  // 시트 저장은 백그라운드
+  jsonpCall(settings.scriptUrl + '?action=visitorCheckin&pin=' + pinToSend + '&name=' + encodeURIComponent(name) + '&host=' + encodeURIComponent(host)).catch(() => {
+    showToast('⚠️ 저장 실패. 관리자에게 알려주세요.');
+  });
 }
 
 function showSuccess(data) {

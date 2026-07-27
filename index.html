@@ -567,6 +567,15 @@ function init() {
     loadAttendance();
     loadMemberList();        // 최신 명단 백그라운드 갱신
   }
+
+  // PPT 발표용 바로가기: URL에 ?raffle=1 붙이면 비밀번호 없이 바로 추첨 화면으로
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('raffle') === '1') {
+    setTimeout(() => {
+      showPage('admin');
+      startRaffle();
+    }, 500); // 데이터 로딩 잠깐 대기
+  }
 }
 
 // ===== 페이지 전환 =====

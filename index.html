@@ -512,6 +512,10 @@
   </header>
 
   <main class="flex-1 px-4 pt-4 pb-28 max-w-md mx-auto space-y-3 overflow-y-auto">
+    <div class="bg-primary-container rounded-xl p-4 flex items-center justify-between shadow-sm">
+      <span class="text-body-md text-on-primary-container font-medium">현재 체크인</span>
+      <span class="text-headline-lg font-headline text-on-primary-container font-bold"><span id="historyCount">0</span>명</span>
+    </div>
     <div id="historyList" class="space-y-2">
       <p class="text-center text-body-sm text-on-surface-variant py-8">체크인 내역이 없습니다.</p>
     </div>
@@ -711,7 +715,8 @@ const EMBEDDED_MEMBERS = [
   {name:'신명철', pin:'7707', type:'멤버', subFor:'', host:'', role:''},
   {name:'윤민수', pin:'0440', type:'멤버', subFor:'', host:'', role:''},
   {name:'이상민', pin:'1858', type:'멤버', subFor:'', host:'', role:''},
-  {name:'임춘식', pin:'0888', type:'멤버', subFor:'', host:'', role:''}
+  {name:'임춘식', pin:'0888', type:'멤버', subFor:'', host:'', role:''},
+  {name:'이해경', pin:'4862', type:'멤버', subFor:'', host:'', role:''}
 ];
 
 // ===== 명단 캐시 (localStorage로 영구 저장) =====
@@ -949,6 +954,9 @@ function updateStats() {
 
 function renderHistory() {
   const list = document.getElementById('historyList');
+  const countEl = document.getElementById('historyCount');
+  if (countEl) countEl.textContent = todayRecords.length;
+
   if (todayRecords.length === 0) {
     list.innerHTML = '<p class="text-center text-body-sm text-on-surface-variant py-8">체크인 내역이 없습니다.</p>';
     return;

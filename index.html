@@ -241,6 +241,10 @@
   </header>
 
   <main class="flex-1 w-full max-w-[480px] mx-auto px-4 pt-2 pb-20 flex flex-col items-center">
+    <div class="mb-2 px-4 py-1.5 bg-primary-fixed rounded-full flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sm text-primary">group</span>
+      <span class="text-label-sm font-bold text-primary"><span id="checkinLiveCount">0</span>/<span id="checkinLiveMax">0</span>명 출석중</span>
+    </div>
     <div class="text-center mb-3">
       <p class="text-body-md text-on-surface-variant">전화번호 뒷 4자리를 입력해 주세요</p>
     </div>
@@ -390,11 +394,17 @@
         <span class="text-label-sm text-on-surface-variant uppercase">총 출석</span>
         <p class="text-headline-lg font-headline text-primary-container mt-1">
           <span id="statTotal">0</span>
-          <span class="text-on-surface-variant text-label-md"> / <span id="statMax">0</span>명</span>
+          <span class="text-on-surface-variant text-label-md">명 출석 (전체 <span id="statMax">0</span>명 중)</span>
         </p>
-        <div class="flex items-center gap-2 text-green-600 mt-2">
-          <span class="material-symbols-outlined text-sm">trending_up</span>
-          <span class="text-label-sm"><span id="statRate">0</span>% 참석률</span>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="flex items-center gap-1 text-green-600">
+            <span class="material-symbols-outlined text-sm">trending_up</span>
+            <span class="text-label-sm"><span id="statRate">0</span>% 참석률</span>
+          </div>
+          <div class="flex items-center gap-1 text-on-surface-variant">
+            <span class="material-symbols-outlined text-sm">person_off</span>
+            <span class="text-label-sm"><span id="statAbsent">0</span>명 미출석</span>
+          </div>
         </div>
       </div>
       <div class="glass-card border border-surface-container-highest p-4 rounded-xl shadow-sm">
@@ -888,6 +898,7 @@ function showSuccess(data) {
 
   // 로컬 기록
   todayRecords.push({ name: data.name, type: data.type, subFor: data.subFor || '', host: data.host || '', time: timeStr, isLate, isRaffle });
+  updateStats();
 
   showPage('success');
 }
@@ -902,10 +913,15 @@ async function loadAttendance() {
     if (data.records && data.records.length > 0) {
       // 시트 데이터가 있을 때만 덮어씀 (최신순 정렬)
       todayRecords = data.records.reverse();
+      if (data.memberCount) totalMemberCount = data.memberCount;
       updateStats();
       renderHistory();
     } else if (data.records && data.records.length === 0 && todayRecords.length > 0) {
       // 시트는 비어있지만 로컬에 데이터 있으면 유지
+      if (data.memberCount) totalMemberCount = data.memberCount;
+      updateStats();
+    } else if (data.memberCount) {
+      totalMemberCount = data.memberCount;
       updateStats();
     }
   } catch(e) {
@@ -914,6 +930,8 @@ async function loadAttendance() {
   }
 }
 
+let totalMemberCount = EMBEDDED_MEMBERS.length; // 시트 응답 오기 전 기본값
+
 function updateStats() {
   const total = todayRecords.length;
   const lateCount = todayRecords.filter(r => r.isLate).length;
@@ -921,11 +939,19 @@ function updateStats() {
   const subCount = todayRecords.filter(r => r.type === '대리').length;
 
   document.getElementById('statTotal').textContent = total;
-  document.getElementById('statMax').textContent = total; // 전체 멤버수는 시트에서
-  document.getElementById('statRate').textContent = total > 0 ? '100' : '0';
+  document.getElementById('statMax').textContent = totalMemberCount;
+  document.getElementById('statRate').textContent = totalMemberCount > 0 ? Math.round(total / totalMemberCount * 100) : 0;
   document.getElementById('statLate').textContent = lateCount;
   document.getElementById('statRaffle').textContent = raffleCount;
   document.getElementById('statSub').textContent = subCount;
+  const absentEl = document.getElementById('statAbsent');
+  if (absentEl) absentEl.textContent = Math.max(0, totalMemberCount - total);
+
+  // 체크인 화면 상단 실시간 카운트
+  const liveCountEl = document.getElementById('checkinLiveCount');
+  const liveMaxEl = document.getElementById('checkinLiveMax');
+  if (liveCountEl) liveCountEl.textContent = total;
+  if (liveMaxEl) liveMaxEl.textContent = totalMemberCount;
 
   // 리스트 렌더
   const tbody = document.getElementById('attendanceList');

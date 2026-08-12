@@ -554,6 +554,29 @@ let todayRecords = []; // { name, type, subFor, time, isLate, isRaffle }
 let settings = {};
 
 // ===== 초기화 =====
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function loadTodayRecordsInstant() {
+  try {
+    const saved = localStorage.getItem('todayRecords:' + todayKey());
+    if (saved) {
+      todayRecords = JSON.parse(saved);
+      updateStats();
+      renderHistory();
+    }
+  } catch(e) {}
+}
+
+function saveTodayRecordsCache() {
+  try {
+    localStorage.setItem('todayRecords:' + todayKey(), JSON.stringify(todayRecords));
+  } catch(e) {}
+}
+
 function init() {
   settings = {
     scriptUrl: localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbyjJWUBBFPE0NWoRj569vNMWwVkJvp7gFkhQJuVE-k2QQYRtPh8zmgGKSeAKT2lKrSO/exec',
@@ -578,6 +601,7 @@ function init() {
     showSetupModal();
   } else {
     loadMemberListInstant(); // 저장된 캐시 즉시 적용 (0ms)
+    loadTodayRecordsInstant(); // 오늘 출석기록도 즉시 복원 (0ms)
     loadAttendance();
     loadMemberList();        // 최신 명단 백그라운드 갱신
   }
@@ -899,6 +923,7 @@ function showSuccess(data) {
   // 로컬 기록
   todayRecords.push({ name: data.name, type: data.type, subFor: data.subFor || '', host: data.host || '', time: timeStr, isLate, isRaffle });
   updateStats();
+  saveTodayRecordsCache();
 
   showPage('success');
 }
@@ -916,6 +941,7 @@ async function loadAttendance() {
       if (data.memberCount) totalMemberCount = data.memberCount;
       updateStats();
       renderHistory();
+      saveTodayRecordsCache();
     } else if (data.records && data.records.length === 0 && todayRecords.length > 0) {
       // 시트는 비어있지만 로컬에 데이터 있으면 유지
       if (data.memberCount) totalMemberCount = data.memberCount;

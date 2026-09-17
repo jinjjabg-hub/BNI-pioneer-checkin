@@ -245,8 +245,13 @@
       <span class="material-symbols-outlined text-sm text-primary">group</span>
       <span class="text-label-sm font-bold text-primary"><span id="checkinLiveCount">0</span>/<span id="checkinLiveMax">0</span>명 출석중</span>
     </div>
-    <div class="text-center mb-3">
-      <p class="text-body-md text-on-surface-variant">전화번호 뒷 4자리를 입력해 주세요</p>
+    <div class="text-center mb-3 w-full max-w-[320px]">
+      <div class="bg-primary text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 shadow-md">
+        <span class="material-symbols-outlined text-2xl">smartphone</span>
+        <div class="text-left">
+          <p class="text-headline-md font-bold leading-tight">휴대폰 번호 뒷 4자리</p>
+        </div>
+      </div>
     </div>
 
     <!-- PIN 입력창 -->
@@ -718,6 +723,7 @@ function jsonpCall(url) {
   });
 }
 
+const EMBEDDED_VERSION = 'v4-2026-07-28-35members';
 const EMBEDDED_MEMBERS = [
   {name:'권두현', pin:'7250', type:'멤버', subFor:'', host:'', role:''},
   {name:'김경태', pin:'2655', type:'멤버', subFor:'', host:'', role:''},
@@ -759,15 +765,16 @@ const EMBEDDED_MEMBERS = [
 // ===== 명단 캐시 (localStorage로 영구 저장) =====
 let memberCache = [];
 function loadMemberListInstant() {
-  // 1순위: 저장된 최신 캐시가 있으면 사용
+  // 1순위: 저장된 캐시가 "현재 코드 버전"과 일치할 때만 사용
   try {
+    const savedVersion = localStorage.getItem('memberCacheVersion');
     const saved = localStorage.getItem('memberCache');
-    if (saved) {
+    if (saved && savedVersion === EMBEDDED_VERSION) {
       memberCache = JSON.parse(saved);
       return;
     }
   } catch(e) {}
-  // 2순위: 코드에 내장된 명단 즉시 사용 (네트워크 불필요)
+  // 버전이 다르거나(=코드가 업데이트됨) 캐시가 없으면 → 내장 명단 즉시 사용
   memberCache = EMBEDDED_MEMBERS;
 }
 async function loadMemberList() {
@@ -777,6 +784,7 @@ async function loadMemberList() {
     if (data.members && data.members.length > 0) {
       memberCache = data.members;
       localStorage.setItem('memberCache', JSON.stringify(data.members));
+      localStorage.setItem('memberCacheVersion', EMBEDDED_VERSION);
     }
   } catch(e) { /* 실패해도 내장 명단으로 계속 작동 */ }
 }

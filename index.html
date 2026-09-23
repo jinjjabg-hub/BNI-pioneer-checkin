@@ -103,7 +103,7 @@
       </div>
       <div>
         <label class="text-label-sm text-on-surface-variant block mb-1">추첨 기준 시각 (이 시각 이전 도착)</label>
-        <input id="setupRaffleTime" type="time" value="06:30" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
+        <input id="setupRaffleTime" type="time" value="06:20" class="w-full h-12 px-4 border border-outline rounded-lg text-body-sm focus:outline-none focus:border-primary-container"/>
       </div>
       <div>
         <label class="text-label-sm text-on-surface-variant block mb-1">지각 기준 시각 (이 시각부터 지각)</label>
@@ -585,7 +585,7 @@ function saveTodayRecordsCache() {
 function init() {
   settings = {
     scriptUrl: localStorage.getItem('scriptUrl') || 'https://script.google.com/macros/s/AKfycbyjJWUBBFPE0NWoRj569vNMWwVkJvp7gFkhQJuVE-k2QQYRtPh8zmgGKSeAKT2lKrSO/exec',
-    raffleTime: localStorage.getItem('raffleTime') || '06:30',
+    raffleTime: localStorage.getItem('raffleTime') || '06:20',
     lateTime: localStorage.getItem('lateTime') || '07:00',
     adminPw: localStorage.getItem('adminPw') || '1234'
   };

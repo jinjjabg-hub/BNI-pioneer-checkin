@@ -1,9 +1,9 @@
-// BNI Pioneer 출석체크 - Google Apps Script (JSONP 지원)
-// 명단 탭: A=이름, B=전화번호뒷4자리, C=구분(멤버/비지터/대리), D=대리대상, E=호스트, F=역할(의장단/도어퍼슨)
+// BNI Pioneer 출석체크 - Google Apps Script v2 (고속화)
+// 명단 탭: A=이름, B=전화번호뒷4자리, C=구분, D=대리대상, E=호스트, F=역할
 // 출석기록 탭: A=날짜, B=이름, C=구분, D=대리대상, E=시각, F=지각여부, G=추첨여부
 // 당첨기록 탭: A=날짜, B=당첨자, C=방식, D=시각 (자동생성)
 
-const RAFFLE_TIME = '06:30';
+const RAFFLE_TIME = '06:20';
 const LATE_TIME = '07:00';
 
 function doGet(e) {
@@ -16,6 +16,8 @@ function doGet(e) {
       result = handleCheckin(e.parameter.pin);
     } else if (action === 'visitorCheckin') {
       result = handleVisitorCheckin(e.parameter.pin, e.parameter.name, e.parameter.host);
+    } else if (action === 'memberList') {
+      result = getMemberList();
     } else if (action === 'hostList') {
       result = getHostCandidates();
     } else if (action === 'today') {
@@ -42,7 +44,6 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// 날짜를 yyyy-MM-dd 문자열로 변환
 function toDateStr(val) {
   try {
     const d = new Date(val);
@@ -52,7 +53,6 @@ function toDateStr(val) {
   }
 }
 
-// 시각을 HH:mm 문자열로 변환
 function toTimeStr(val) {
   if (!val) return '';
   try {
@@ -68,6 +68,29 @@ function toTimeStr(val) {
   }
 }
 
+// 전체 명단 내려주기 (앱이 시작할 때 캐싱용)
+function getMemberList() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const memberSheet = ss.getSheetByName('명단');
+  const members = memberSheet.getDataRange().getValues();
+
+  const list = [];
+  for (let i = 1; i < members.length; i++) {
+    const name = String(members[i][0] || '').trim();
+    if (!name) continue;
+    list.push({
+      name: name,
+      pin: String(members[i][1] || '').trim().padStart(4, '0'),
+      type: String(members[i][2] || '멤버').trim(),
+      subFor: String(members[i][3] || '').trim(),
+      host: String(members[i][4] || '').trim(),
+      role: String(members[i][5] || '').trim()
+    });
+  }
+
+  return { status: 'ok', members: list };
+}
+
 function handleCheckin(pin) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const memberSheet = ss.getSheetByName('명단');
@@ -78,7 +101,6 @@ function handleCheckin(pin) {
   }
 
   const normalizedPin = pin.padStart(4, '0');
-
   const members = memberSheet.getDataRange().getValues();
   let found = null;
 
@@ -99,27 +121,37 @@ function handleCheckin(pin) {
     return { status: 'notfound', message: '등록되지 않은 번호' };
   }
 
-  const today = getTodayStr();
-  const records = recordSheet.getDataRange().getValues();
-
-  for (let i = 1; i < records.length; i++) {
-    const recDate = toDateStr(records[i][0]);
-    const recName = records[i][1];
-    if (recDate === today && recName === found.name) {
-      return { status: 'already', message: '이미 체크인됨', name: found.name };
-    }
+  if (isAlreadyCheckedIn(recordSheet, found.name)) {
+    return { status: 'already', message: '이미 체크인됨', name: found.name };
   }
 
-  return doCheckinWrite(recordSheet, today, found.name, found.type, found.subFor, found.host);
+  return doCheckinWrite(recordSheet, found.name, found.type, found.subFor, found.host);
 }
 
-// 호스트 후보 목록 (의장단/도어퍼슨/이미 배정된 호스트 제외)
+// 오늘 중복 체크 (뒤에서부터 검사 - 최신 데이터가 아래에 있으므로 빠름)
+function isAlreadyCheckedIn(recordSheet, name) {
+  const today = getTodayStr();
+  const lastRow = recordSheet.getLastRow();
+  if (lastRow < 2) return false;
+
+  // 최근 200행만 검사 (충분함)
+  const startRow = Math.max(2, lastRow - 199);
+  const numRows = lastRow - startRow + 1;
+  const data = recordSheet.getRange(startRow, 1, numRows, 2).getValues();
+
+  for (let i = data.length - 1; i >= 0; i--) {
+    const recDate = toDateStr(data[i][0]);
+    if (recDate < today) break; // 오늘보다 이전 날짜 나오면 중단
+    if (recDate === today && data[i][1] === name) return true;
+  }
+  return false;
+}
+
 function getHostCandidates() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const memberSheet = ss.getSheetByName('명단');
   const members = memberSheet.getDataRange().getValues();
 
-  // 이미 호스트로 배정된 이름 수집 (E열)
   const assignedHosts = new Set();
   for (let i = 1; i < members.length; i++) {
     const host = String(members[i][4] || '').trim();
@@ -132,16 +164,15 @@ function getHostCandidates() {
     const type = String(members[i][2] || '').trim();
     const role = String(members[i][5] || '').trim();
     if (!name) continue;
-    if (type !== '멤버') continue;                    // 멤버만
-    if (role === '의장단' || role === '도어퍼슨') continue;  // 역할자 제외
-    if (assignedHosts.has(name)) continue;            // 이미 호스팅 배정된 멤버 제외
+    if (type !== '멤버') continue;
+    if (role === '의장단' || role === '도어퍼슨') continue;
+    if (assignedHosts.has(name)) continue;
     candidates.push(name);
   }
 
   return { status: 'ok', hosts: candidates };
 }
 
-// 비지터 현장 등록 + 체크인 (호스트 포함)
 function handleVisitorCheckin(pin, name, host) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const memberSheet = ss.getSheetByName('명단');
@@ -158,24 +189,18 @@ function handleVisitorCheckin(pin, name, host) {
   const trimmedHost = (host || '').trim();
   const normalizedPin = pin.padStart(4, '0');
 
-  const today = getTodayStr();
-  const records = recordSheet.getDataRange().getValues();
-  for (let i = 1; i < records.length; i++) {
-    const recDate = toDateStr(records[i][0]);
-    if (recDate === today && records[i][1] === trimmedName) {
-      return { status: 'already', message: '이미 체크인됨', name: trimmedName };
-    }
+  if (isAlreadyCheckedIn(recordSheet, trimmedName)) {
+    return { status: 'already', message: '이미 체크인됨', name: trimmedName };
   }
 
-  // 명단 탭에 비지터로 추가 (호스트 포함)
   memberSheet.appendRow([trimmedName, normalizedPin, '비지터', '', trimmedHost, '']);
 
-  return doCheckinWrite(recordSheet, today, trimmedName, '비지터', '', trimmedHost);
+  return doCheckinWrite(recordSheet, trimmedName, '비지터', '', trimmedHost);
 }
 
-// 공통 체크인 기록 저장 로직
-function doCheckinWrite(recordSheet, today, name, type, subFor, host) {
+function doCheckinWrite(recordSheet, name, type, subFor, host) {
   const now = new Date();
+  const today = getTodayStr();
   const timeStr = Utilities.formatDate(now, 'Asia/Seoul', 'HH:mm');
   const isLate = timeToMin(timeStr) >= timeToMin(LATE_TIME);
   const isRaffle = timeToMin(timeStr) < timeToMin(RAFFLE_TIME) &&
@@ -205,35 +230,44 @@ function getTodayRecords() {
   const memberSheet = ss.getSheetByName('명단');
 
   const today = getTodayStr();
-  const rows = recordSheet.getDataRange().getValues();
-
-  // 명단에서 이름→호스트 매핑
-  const members = memberSheet.getDataRange().getValues();
-  const hostMap = {};
-  for (let i = 1; i < members.length; i++) {
-    const nm = String(members[i][0] || '').trim();
-    const host = String(members[i][4] || '').trim();
-    if (nm && host) hostMap[nm] = host;
-  }
-
+  const lastRow = recordSheet.getLastRow();
   const records = [];
-  for (let i = 1; i < rows.length; i++) {
-    const recDate = toDateStr(rows[i][0]);
-    if (recDate === today) {
-      const nm = rows[i][1];
-      records.push({
-        name: nm,
-        type: rows[i][2],
-        subFor: rows[i][3],
-        host: hostMap[nm] || '',
-        time: toTimeStr(rows[i][4]),
-        isLate: rows[i][5] === 'Y',
-        isRaffle: rows[i][6] === 'Y'
-      });
+
+  if (lastRow >= 2) {
+    // 최근 300행만 읽기 (하루 출석은 그 안에 다 들어옴)
+    const startRow = Math.max(2, lastRow - 299);
+    const numRows = lastRow - startRow + 1;
+    const rows = recordSheet.getRange(startRow, 1, numRows, 7).getValues();
+
+    // 명단에서 이름→호스트 매핑
+    const members = memberSheet.getDataRange().getValues();
+    const hostMap = {};
+    for (let i = 1; i < members.length; i++) {
+      const nm = String(members[i][0] || '').trim();
+      const host = String(members[i][4] || '').trim();
+      if (nm && host) hostMap[nm] = host;
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const recDate = toDateStr(rows[i][0]);
+      if (recDate === today) {
+        const nm = rows[i][1];
+        records.push({
+          name: nm,
+          type: rows[i][2],
+          subFor: rows[i][3],
+          host: hostMap[nm] || '',
+          time: toTimeStr(rows[i][4]),
+          isLate: rows[i][5] === 'Y',
+          isRaffle: rows[i][6] === 'Y'
+        });
+      }
     }
   }
 
-  const memberCount = members.slice(1).filter(r => r[0] !== '').length;
+  const memberSheet2 = ss.getSheetByName('명단');
+  const allRows = memberSheet2.getDataRange().getValues();
+  const memberCount = allRows.slice(1).filter(r => String(r[0]).trim() !== '' && String(r[2]).trim() === '멤버').length;
 
   return {
     status: 'ok',
@@ -242,7 +276,6 @@ function getTodayRecords() {
   };
 }
 
-// 추첨 당첨자 시트 기록
 function logWinner(name, mode) {
   if (!name) return { status: 'error', message: '이름 없음' };
 
